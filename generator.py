@@ -1,17 +1,31 @@
 import random
-random.seed(123)
+import argparse
 
-for testcase_ind in range(5):
-    path = 'testcase' + str(testcase_ind) + '.txt'
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--n', type=int, default=5)
+    parser.add_argument('--seed', type=int, default=123)
+    parser.add_argument('--path', type=str, default='./testcases')
+    parser.add_argument('--pay_prob', type=float, default=0.25)
+    parser.add_argument('--pay_max', type=int, default=10000)
+    args = parser.parse_args()
+    return args
+
+args = parse_args()
+
+random.seed(args.seed)
+
+for testcase_ind in range(args.n):
+    path = args.path + '/testcase' + str(testcase_ind) + '.txt'
     f = open(path, "w")
 
     n = random.randint(1, 1000)
 
     f.write(str(n)) 
-    f.write("\r\n")
+    f.write("\n")
 
-    entr = [0, 5, 6, 11]
-    exit = [1, 2, 9, 10]
+    entr = [i for i in range(4)]
+    exit = [i for i in range(4)]
     zone = [3, 4, 7, 8]
 
     to_pay = [0,0,0,1]
@@ -32,18 +46,18 @@ for testcase_ind in range(5):
         position.append(start)
         
         end = random.choice(exit)
-        while (start == 0 and end == 1) or (start == 6 and end == 2) or (start == 11 and end == 10) or (start == 5 and end == 9):
+        while start == end:
             end = random.choice(exit)
         
-        is_want_to_pay = random.choice(to_pay) #let most people not want to pay
+        is_want_to_pay = random.random() < args.pay_prob
 
         if is_want_to_pay:
-            payment = random.randint(1, 10000)
+            payment = random.randint(1, args.pay_max)
         else:
             payment = 0
 
         f.write(f"{vehicle_id} {arrival_time} {start} {end} {payment}")
-        f.write("\r\n")
+        f.write("\n")
 
         if(num_veh == -1): #new arrival time(to decide how many cars will arrive at the same time)
             num_veh = random.randint(0, 3) #select the number of cars that will arrive at the same time
