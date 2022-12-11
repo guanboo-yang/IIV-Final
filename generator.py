@@ -4,65 +4,63 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--n", type=int, default=5)
+    parser.add_argument("-n", "--testcase", type=int, default=5)
+    parser.add_argument("-t", "--time", type=int, default=10)
+    parser.add_argument("-c", "--num_cars", type=float, default=2.0)
+    parser.add_argument("-u", "--allow_u_turn", action="store_true", default=False)
+    parser.add_argument("-p", "--path", type=str, default="./testcases")
     parser.add_argument("--seed", type=int, default=123)
-    parser.add_argument("--path", type=str, default="./testcases")
     parser.add_argument("--pay_prob", type=float, default=0.25)
-    parser.add_argument("--pay_max", type=int, default=10000)
+    parser.add_argument("--pay_max", type=int, default=100)
     args = parser.parse_args()
     random.seed(args.seed)
     return args
 
 
+#     | 0 | 3 |
+# | 0 | 0 | 3 | 3 |
+# | 1 | 1 | 2 | 2 |
+#     | 1 | 2 |
+
+
 def generate_one_testcase(args, path):
     n = random.randint(1, 1000)
+
+    weights = [0.2 + (args.num_cars - 2) * 0.1 * i for i in range(-2, 3)]
+
     with open(path, "w") as f:
         f.write(str(n))
         f.write("\n")
-        entr = [i for i in range(4)]
-        exit = [i for i in range(4)]
+        zone = [i for i in range(4)]
+        zone = [i for i in range(4)]
 
-        position = []  # to record what zone the car is at this "arrival time"
+        vehicle_id = 0
 
-        arrival_time = 0
-        num_veh = -1
+        for time in range(args.time):
+            num_vehicle = random.choices(range(5), weights=weights)[0]
 
-        for vehicle_id in range(n):
+            start_pos = random.sample(range(4), num_vehicle)
 
-            start = random.choice(entr)
-            while start in position:  # Avoid generating the car at the same position at the same time
-                start = random.choice(entr)
+            for i in range(num_vehicle):
+                start = start_pos[i]
+                end = random.choice(zone)
 
-            position.append(start)
+                while start == (end + 1) % 4:
+                    if args.allow_u_turn:
+                        break
+                    end = random.choice(zone)
 
-            end = random.choice(exit)
-            while start == end:
-                end = random.choice(exit)
+                is_want_to_pay = random.random() < args.pay_prob
+                payment = random.randint(1, args.pay_max) if is_want_to_pay else 0
 
-            is_want_to_pay = random.random() < args.pay_prob
-            payment = random.randint(1, args.pay_max) if is_want_to_pay else 0
-
-            f.write(f"{vehicle_id} {arrival_time} {start} {end} {payment}")
-            f.write("\n")
-
-            if num_veh == -1:  # new arrival time(to decide how many cars will arrive at the same time)
-                num_veh = random.randint(0, 3)  # select the number of cars that will arrive at the same time
-
-            if num_veh == 0:
-                to_add_arrival_time = random.randint(1, 5)  # select the arrival time of next car
-                num_veh = -1
-            else:
-                to_add_arrival_time = 0
-                num_veh = num_veh - 1
-
-            if to_add_arrival_time:
-                arrival_time = arrival_time + to_add_arrival_time
-                position.clear()
+                f.write(f"{vehicle_id} {time} {start} {end} {payment}")
+                f.write("\n")
+                vehicle_id += 1
 
 
 def main():
     args = parse_args()
-    for testcase_ind in range(args.n):
+    for testcase_ind in range(args.testcase):
         path = args.path + "/testcase" + str(testcase_ind) + ".txt"
         generate_one_testcase(args, path)
 
