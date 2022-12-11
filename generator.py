@@ -24,13 +24,9 @@ def parse_args():
 
 
 def generate_one_testcase(args, path):
-    n = random.randint(1, 1000)
-
     weights = [0.2 + (args.num_cars - 2) * 0.1 * i for i in range(-2, 3)]
 
     with open(path, "w") as f:
-        f.write(str(n))
-        f.write("\n")
         zone = [i for i in range(4)]
         zone = [i for i in range(4)]
 
