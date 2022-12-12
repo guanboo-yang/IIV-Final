@@ -93,10 +93,10 @@ class Resource_Conflict_Graph_Node:
         self.outgoing: list["Edge"] = []
 
     def __repr__(self):
-        return f"Resource_Conflict_Graph_Node ({self.vid}, {self.start}, {self.end})"
+        return f"({self.vid}, {self.start}, {self.end})"
 
-    def link_to(self, other: "Resource_Conflict_Graph_Node", type: int):
-        RCG_edge = Resource_Conflict_Graph_Edge(type, self, other)
+    def link_to(self, other: "Resource_Conflict_Graph_Node"):
+        RCG_edge = Resource_Conflict_Graph_Edge( self, other)
         self.outgoing.append(RCG_edge)
         return RCG_edge
     
@@ -107,7 +107,7 @@ class Resource_Conflict_Graph_Edge:
         self.end = end
 
     def __repr__(self):
-        return f"Resource_Conflict_Graph_Edge ({self.type}, {self.start} → {self.end})"
+        return f"Resource_Conflict_Graph_Edge ({self.start} → {self.end})"
 
 class Resource_Conflict_Graph:
     def __init__(self):
@@ -117,15 +117,19 @@ class Resource_Conflict_Graph:
     def convert(self, Graph:Graph):
         
         for graph_edge in Graph.edges:  
-            
-            # create the resource conflict graph node
+            # create the conflict graph node
             if graph_edge.type == 1:
-
                 RCG_start = Resource_Conflict_Graph_Node(graph_edge.start.vid, graph_edge.start.zid, graph_edge.end.zid)
-                
                 self.nodes.append(RCG_start)
-                
-        #TODO: create the resource conflict graph edge according to the rule from slide 6 p42
+
+        # create the resource conflict graph edge  according to the slide_6 p42 rule(a)
+        for RCG_node_ind in range(len(self.nodes)):
+            cur_id = self.nodes[RCG_node_ind].vid
+            while (RCG_node_ind + 1 <  len(self.nodes)) and self.nodes[RCG_node_ind + 1].vid == cur_id:
+                RCG_edge = self.nodes[RCG_node_ind].link_to(self.nodes[RCG_node_ind + 1])
+                RCG_node_ind = RCG_node_ind + 1 
+                self.edges.append(RCG_edge)
+        #TODO: create the resource conflict graph edge according to the slide_6 p42 rule(b)~(e)
             
         
 
@@ -151,7 +155,10 @@ def main():
     # TODO: build resource conflict graph
     resource_conflict_graph = Resource_Conflict_Graph()
     resource_conflict_graph.convert(graph)
+    print("---resource_conflict_graph_nodes---")
     print(*resource_conflict_graph.nodes, sep="\n")
+    print("---resource_conflict_graph_edges---")
+    print(*resource_conflict_graph.edges, sep="\n")
     # TODO: solve
 
 
