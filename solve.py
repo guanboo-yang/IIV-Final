@@ -66,7 +66,7 @@ class Graph:
             curr = end
             self.zone_vehicles[z].append(curr)
 
-        # hadle type 2 edge
+        # handle type 2 edge
         if self.prev_vehicle[vehicle.start] is not None:
             edge = self.prev_vehicle[vehicle.start].link_to(start, 2)
             self.edges.append(edge)
@@ -84,6 +84,50 @@ class Graph:
 
     def print_edges(self):
         print(*self.edges, sep="\n")
+
+class Resource_Conflict_Graph_Node:
+    def __init__(self, vid: int, start: int, end: int):
+        self.vid = vid
+        self.start = start
+        self.end = end
+        self.outgoing: list["Edge"] = []
+
+    def __repr__(self):
+        return f"Resource_Conflict_Graph_Node ({self.vid}, {self.start}, {self.end})"
+
+    def link_to(self, other: "Resource_Conflict_Graph_Node", type: int):
+        RCG_edge = Resource_Conflict_Graph_Edge(type, self, other)
+        self.outgoing.append(RCG_edge)
+        return RCG_edge
+    
+
+class Resource_Conflict_Graph_Edge:
+    def __init__(self, start: "Resource_Conflict_Graph_Node", end: "Resource_Conflict_Graph_Node"):
+        self.start = start
+        self.end = end
+
+    def __repr__(self):
+        return f"Resource_Conflict_Graph_Edge ({self.type}, {self.start} → {self.end})"
+
+class Resource_Conflict_Graph:
+    def __init__(self):
+        self.nodes = []
+        self.edges = []
+
+    def convert(self, Graph:Graph):
+        
+        for graph_edge in Graph.edges:  
+            
+            # create the resource conflict graph node
+            if graph_edge.type == 1:
+
+                RCG_start = Resource_Conflict_Graph_Node(graph_edge.start.vid, graph_edge.start.zid, graph_edge.end.zid)
+                
+                self.nodes.append(RCG_start)
+                
+        #TODO: create the resource conflict graph edge according to the rule from slide 6 p42
+            
+        
 
 
 def main():
@@ -105,6 +149,9 @@ def main():
     print(len(graph.edges))
 
     # TODO: build resource conflict graph
+    resource_conflict_graph = Resource_Conflict_Graph()
+    resource_conflict_graph.convert(graph)
+    print(*resource_conflict_graph.nodes, sep="\n")
     # TODO: solve
 
 
