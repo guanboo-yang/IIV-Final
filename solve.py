@@ -16,51 +16,50 @@ class Vehicle:
         return f"Vehicle({self.id}, {' → '.join(map(str, self.path))})"
 
 
-class Node:
+class TCG_Node:
     def __init__(self, vid: int, zid: int):
         self.vid = vid
         self.zid = zid
-        self.outgoing: list["Edge"] = []
+        self.outgoing: list["TCG_Edge"] = []
 
     def __repr__(self):
         return f"({self.vid}, {self.zid})"
 
-    def link_to(self, other: "Node", type: int):
-        edge = Edge(type, self, other)
+    def link_to(self, other: "TCG_Node", type: int):
+        edge = TCG_Edge(type, self, other)
         self.outgoing.append(edge)
         return edge
 
 
-class Edge:
-    def __init__(self, type: int, start: "Node", end: "Node"):
+class TCG_Edge:
+    def __init__(self, type: int, start: "TCG_Node", end: "TCG_Node"):
         self.type = type
         self.start = start
         self.end = end
 
     def __repr__(self):
-        return f"Edge({self.type}, {self.start} → {self.end})"
+        return f"TCGE({self.type}, {self.start} → {self.end})"
 
 
-class Graph:
+class TCG:
     def __init__(self):
         self.vehicles: list[Vehicle] = []
-        self.nodes: list[Node] = []
-
-        self.edges = []
+        self.nodes: list[TCG_Node] = []
+        self.edges: list[TCG_Edge] = []
 
         self.prev_vehicle = [None, None, None, None]
         self.zone_vehicles = [[], [], [], []]
 
     def add_vehicle(self, vehicle: Vehicle):
         self.vehicles.append(vehicle)
-        start = Node(vehicle.id, vehicle.start)
+        start = TCG_Node(vehicle.id, vehicle.start)
 
         # handle type 1 edge
         curr = start
         self.nodes.append(curr)  # add start node
         self.zone_vehicles[vehicle.start].append(curr)
         for z in vehicle.path[1:]:
-            end = Node(vehicle.id, z)
+            end = TCG_Node(vehicle.id, z)
             edge = curr.link_to(end, 1)
             self.edges.append(edge)
             curr = end
@@ -85,80 +84,80 @@ class Graph:
     def print_edges(self):
         print(*self.edges, sep="\n")
 
-class Resource_Conflict_Graph_Node:
+
+class RCG_Node:
     def __init__(self, vid: int, start: int, end: int):
         self.vid = vid
         self.start = start
         self.end = end
-        self.outgoing: list["Edge"] = []
+        self.outgoing: list["TCG_Edge"] = []
 
     def __repr__(self):
         return f"({self.vid}, {self.start}, {self.end})"
 
-    def link_to(self, other: "Resource_Conflict_Graph_Node"):
-        RCG_edge = Resource_Conflict_Graph_Edge( self, other)
+    def link_to(self, other: "RCG_Node"):
+        RCG_edge = RCG_Edge(self, other)
         self.outgoing.append(RCG_edge)
         return RCG_edge
-    
 
-class Resource_Conflict_Graph_Edge:
-    def __init__(self, start: "Resource_Conflict_Graph_Node", end: "Resource_Conflict_Graph_Node"):
+
+class RCG_Edge:
+    def __init__(self, start: "RCG_Node", end: "RCG_Node"):
         self.start = start
         self.end = end
 
     def __repr__(self):
-        return f"Resource_Conflict_Graph_Edge ({self.start} → {self.end})"
+        return f"RCGE({self.start} → {self.end})"
 
-class Resource_Conflict_Graph:
+
+class RCG:
     def __init__(self):
-        self.nodes = []
-        self.edges = []
+        self.nodes: list[RCG_Node] = []
+        self.edges: list[RCG_Edge] = []
 
-    def convert(self, Graph:Graph):
-        
-        for graph_edge in Graph.edges:  
+    def convert(self, TCG: TCG):
+        for graph_edge in TCG.edges:
             # create the conflict graph node
             if graph_edge.type == 1:
-                RCG_start = Resource_Conflict_Graph_Node(graph_edge.start.vid, graph_edge.start.zid, graph_edge.end.zid)
+                RCG_start = RCG_Node(graph_edge.start.vid, graph_edge.start.zid, graph_edge.end.zid)
                 self.nodes.append(RCG_start)
 
         # create the resource conflict graph edge  according to the slide_6 p42 rule(a)
         for RCG_node_ind in range(len(self.nodes)):
             cur_id = self.nodes[RCG_node_ind].vid
-            while (RCG_node_ind + 1 <  len(self.nodes)) and self.nodes[RCG_node_ind + 1].vid == cur_id:
+            while (RCG_node_ind + 1 < len(self.nodes)) and self.nodes[RCG_node_ind + 1].vid == cur_id:
                 RCG_edge = self.nodes[RCG_node_ind].link_to(self.nodes[RCG_node_ind + 1])
-                RCG_node_ind = RCG_node_ind + 1 
+                RCG_node_ind = RCG_node_ind + 1
                 self.edges.append(RCG_edge)
-        #TODO: create the resource conflict graph edge according to the slide_6 p42 rule(b)~(e)
-            
-        
+        # TODO: create the resource conflict graph edge according to the slide_6 p42 rule(b)~(e)
 
 
 def main():
-    graph = Graph()
+    tcg = TCG()
 
     # keep reading until eof
     for line in sys.stdin:
-        graph.add_vehicle(Vehicle(*map(int, line.split())))
+        tcg.add_vehicle(Vehicle(*map(int, line.split())))
 
-    graph.build_type_3_edge()
+    tcg.build_type_3_edge()
 
     # examples:
-    # print(graph.vehicles[0])
-    # print(graph.nodes[0])
-    # print(graph.nodes[0].outgoing)
-    # print(graph.nodes[0].outgoing[0].end)
-    # print(graph.nodes[0].outgoing[0].end.outgoing)
-    print(*graph.edges, sep="\n")
-    print(len(graph.edges))
+    # print(tcg.vehicles[0])
+    # print(tcg.nodes[0])
+    # print(*tcg.edges, sep="\n")
+    # print all type 1 edge
+    print(*[e for e in tcg.edges if e.type == 1], sep="\n")
+    # print(len(tcg.edges))
 
     # TODO: build resource conflict graph
-    resource_conflict_graph = Resource_Conflict_Graph()
-    resource_conflict_graph.convert(graph)
-    print("---resource_conflict_graph_nodes---")
-    print(*resource_conflict_graph.nodes, sep="\n")
-    print("---resource_conflict_graph_edges---")
-    print(*resource_conflict_graph.edges, sep="\n")
+    rcg = RCG()
+    rcg.convert(tcg)
+
+    print("=== resource_conflict_graph_nodes ===")
+    print(*rcg.nodes, sep="\n")
+
+    print("=== resource_conflict_graph_edges ===")
+    print(*rcg.edges, sep="\n")
     # TODO: solve
 
 
