@@ -27,4 +27,7 @@ path_map = {
 
 
 def get_path(start, end):
-    return path_map[start][end]
+    try:
+        return path_map[start][end]
+    except KeyError:
+        return []

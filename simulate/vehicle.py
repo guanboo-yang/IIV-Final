@@ -74,7 +74,8 @@ class Vehicle(sprite.Sprite):
         cursor_pos = pygame.mouse.get_pos()
         if self.rect.collidepoint(cursor_pos):
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
-            for zone in get_path(self.start, self.end):
+            # for zone in get_path(self.start, self.end):
+            for zone in get_path(self.dest, self.end):
                 zones[zone].turn_on(self.color)
         else:
             ...

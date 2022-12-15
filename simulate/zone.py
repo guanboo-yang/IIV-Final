@@ -117,6 +117,9 @@ class Zones:
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_SPACE:
                             self.pause = not self.pause
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        if event.button == 1:
+                            self.pause = not self.pause
         except KeyboardInterrupt:
             print("\n\rGoodbye!")
         finally:
