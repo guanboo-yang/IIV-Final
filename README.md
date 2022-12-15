@@ -12,6 +12,6 @@ python3 generator.py [--n number of testcases = 5] [--seed random seed = 123] [-
 ```bash
 Usage:
 python3 simulate [testcase path] [schdule path]
-# defaulr schedule
+# First-Come-First-Serve schedule
 python3 simulate [testcase path]
 ```

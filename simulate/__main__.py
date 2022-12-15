@@ -38,7 +38,7 @@ class MyGame(Zones):
                 for zone in get_path(start, end):
                     zones[zone].append(id)
         if file2 == None:
-            print("No schedule file provided, using default schedule")
+            print("No schedule file provided, using FCFS schedule")
             for idx, zone in enumerate(zones):
                 self.zones.append(Zone(idx, zone))
             return
