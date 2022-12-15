@@ -14,7 +14,8 @@ ZONES: list[dict[str, tuple[int, int]]] = [
 
 
 class Zone:
-    def __init__(self, id: int, vids: list[int] = [], size: int = 50):
+    def __init__(self, screen: pygame.Surface, id: int, vids: list[int] = [], size: int = 50):
+        self.screen = screen
         self.id = id
         self.pos = ZONES[id]["pos"]
         self.start = ZONES[id]["start"]
@@ -41,8 +42,13 @@ class Zone:
                 self.finish = True
         self.draw(screen)
 
-    def draw(self, screen: pygame.Surface):
+    def turn_on(self, color: tuple[int, int, int]):
+        # brighter
+        self.draw(self.screen, (191 + color[0] // 4, 191 + color[1] // 4, 191 + color[2] // 4))
+
+    def draw(self, screen: pygame.Surface, bg: tuple[int, int, int] = (255, 255, 255)):
         pos = (self.pos[0] - self.size / 2 - 1, self.pos[1] - self.size / 2 - 1)
+        pygame.draw.rect(screen, bg, pygame.Rect(pos, (self.size + 2, self.size + 2)))
         pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(pos, (self.size + 2, self.size + 2)), 2)
         font = pygame.font.SysFont("menlo", 30, bold=True)
         text_surface = font.render(str(self.id), True, (180, 180, 180))
@@ -63,7 +69,6 @@ class Zones:
         self.time = TIME_OFFSET
         self.running = True
         self.pause = False
-        self.zones = []
 
     def draw_text(self, text: str, pos: tuple[int, int], color: tuple[int, int, int] = (0, 0, 0), align: str = "center"):
         text_surface = self.font.render(text, True, color)
@@ -91,25 +96,21 @@ class Zones:
         self.draw_line((350, 350), (350, 600))
         self.draw_text(f"{self.time:.1f}", (585, 585), align="bottomright")
 
-    def update(self, time: float):
+    def update(self, time: float, pause: bool):
         ...
 
     def run(self):
         try:
             while self.running:
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
                 if not self.pause:
                     self.time += self.clock.tick(60) / 1000
-                    self.screen.fill((255, 255, 255))
-                    self.draw_background()
-                    for zone in self.zones:
-                        zone.update(self.screen, self.time)
-                    self.update(self.time)
-                    # print(f"\r{self.zones}", end="")
-                    pygame.display.flip()
-                    if all([zone.finish for zone in self.zones]):
-                        self.pause = True
                 else:
                     self.clock.tick(60)
+                self.screen.fill((255, 255, 255))
+                self.draw_background()
+                self.update(self.time, self.pause)
+                pygame.display.flip()
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.running = False

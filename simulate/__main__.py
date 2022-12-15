@@ -8,11 +8,14 @@ from zone import Zones, Zone
 class MyGame(Zones):
     def __init__(self):
         super().__init__()
+        self.zones: list[Zone] = []
         self.group = Group(self.screen, self.zones)
         self.vehicles: dict[int, list[Vehicle]] = {}
 
-    def update(self, time: float):
-        self.group.update(time, self.zones)
+    def update(self, time: float, pause: bool):
+        for zone in self.zones:
+            zone.update(self.screen, self.time)
+        self.group.update(time, self.zones, pause)
         self.group.draw(self.screen)
         to_add = []
         for arri in self.vehicles:
@@ -21,6 +24,10 @@ class MyGame(Zones):
         for arri in to_add:
             self.group.add(*self.vehicles[arri])
             self.vehicles.pop(arri)
+
+        # print(f"\r{self.zones}", end="")
+        if all([zone.finish for zone in self.zones]):
+            self.pause = True
 
     def add_vehicle(self, arri: int, vehicle: Vehicle):
         if arri in self.vehicles:
@@ -40,12 +47,12 @@ class MyGame(Zones):
         if file2 == None:
             print("No schedule file provided, using FCFS schedule")
             for idx, zone in enumerate(zones):
-                self.zones.append(Zone(idx, zone))
+                self.zones.append(Zone(self.screen, idx, zone))
             return
         with open(file2) as f:
             print("Loading schedule:", file2)
             for idx, line in enumerate(f):
-                self.zones.append(Zone(idx, list(map(int, line.split()))))
+                self.zones.append(Zone(self.screen, idx, list(map(int, line.split()))))
 
 
 if __name__ == "__main__":

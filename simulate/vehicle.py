@@ -24,6 +24,7 @@ class Vehicle(sprite.Sprite):
         self.id = id
         self.start = start
         self.end = end
+        self.color = gen_color()
         # enter state
         self.state = State.INIT
 
@@ -31,17 +32,19 @@ class Vehicle(sprite.Sprite):
         self.image = pygame.Surface((32, 32))
         self.rect = self.image.get_rect()
         self.image.fill((255, 255, 255), self.rect)
-        pygame.draw.rect(self.image, gen_color(), self.rect, 2)
-
-        font = pygame.font.SysFont("menlo", 20)
-        text = font.render(str(self.id), True, (0, 0, 0))
-        text_rect = text.get_rect()
-        setattr(text_rect, "center", self.rect.center)
-        self.image.blit(text, text_rect)
+        pygame.draw.rect(self.image, self.color, self.rect, 2)
+        self.draw_text(str(self.id), self.color)
 
         path = get_path(self.start, self.end)
         self.path = iter(path)
         self.release = lambda _: None
+
+    def draw_text(self, text: str, color: tuple[int, int, int]):
+        font = pygame.font.SysFont("menlo", 20)
+        text_surf = font.render(text, True, color)
+        text_rect = text_surf.get_rect()
+        setattr(text_rect, "center", self.rect.center)
+        self.image.blit(text_surf, text_rect)
 
     def forward(self):
         if self.target == None:
@@ -67,9 +70,21 @@ class Vehicle(sprite.Sprite):
         # return distance
         return (dest - pos).length()
 
-    def update(self, time: float, zones: list[Zone]):
+    def check_hovered(self, zones: list[Zone]):
+        cursor_pos = pygame.mouse.get_pos()
+        if self.rect.collidepoint(cursor_pos):
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+            for zone in get_path(self.start, self.end):
+                zones[zone].turn_on(self.color)
+        else:
+            ...
+
+    def update(self, time: float, zones: list[Zone], pause: bool = False):
         # if self.id == 5:
         #     print(f"\r{self.state}", end="")
+        self.check_hovered(zones)
+        if pause:
+            return
         if self.state == State.INIT:
             self.rect.center = zones[self.start].start
             self.center = Vector2(self.rect.center)
