@@ -38,6 +38,7 @@ class Vehicle(sprite.Sprite):
         path = get_path(self.start, self.end)
         self.path = iter(path)
         self.release = lambda _: None
+        self.dest = None
 
     def draw_text(self, text: str, color: tuple[int, int, int]):
         font = pygame.font.SysFont("menlo", 20)
