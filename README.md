@@ -7,6 +7,13 @@ Usage:
 python3 generator.py [--n number of testcases = 5] [--seed random seed = 123] [--path path to store testcases = ./testcases] [--pay_prob probability a vehicle paying = 0.25] [--pay_max maximum value a vehicle would pay = 10000]
 ```
 
+## Solve timing conflict
+
+```bash
+Usage:
+python3 solve [testcase path]
+```
+
 ## Simulate in PyGame
 
 ```bash
