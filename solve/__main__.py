@@ -128,7 +128,24 @@ class RCG:
         self.nodes: list[RCG_Node] = []
         self.edges: list[RCG_Edge] = []
 
+    def build_edge_dict(self, TCG: TCG):
+        self.TCG_edge_dict = dict()
+        for e in TCG.edges:
+            self.TCG_edge_dict[(e.start.vid, e.start.zid, e.end.vid, e.end.zid)] = e.type
+
+    def search_TCG_edge(self, vid1, zid1, vid2, zid2):
+        if vid1 == None or vid2 == None:
+            return None
+        if self.TCG_edge_dict.get((vid1, zid1, vid2, zid2)) != None:
+            return 0
+        elif self.TCG_edge_dict.get((vid2, zid2, vid1, zid1)) != None:
+            return 1
+        else:
+            return None
+
     def build(self, TCG: TCG):
+        self.build_edge_dict(TCG)
+
         for graph_edge in TCG.edges:
             # create the conflict graph node
             if graph_edge.type == 1:
@@ -142,11 +159,44 @@ class RCG:
                 RCG_edge = self.nodes[RCG_node_ind].link_to(self.nodes[RCG_node_ind + 1])
                 RCG_node_ind = RCG_node_ind + 1
                 self.edges.append(RCG_edge)
-        # TODO: create the resource conflict graph edge according to the slide_6 p42 rule(b)~(e)
+
+        # create the resource conflict graph edge according to the slide_6 p42 rule(b)~(e)
+        # TODO: case of both start and end are the same for both vertices is not implemented yet
+        for RCG_node_i in range(len(self.nodes)):
+            for RCG_node_j in range(RCG_node_i, len(self.nodes)):
+                node1 = self.nodes[RCG_node_i]
+                node2 = self.nodes[RCG_node_j]
+                if node1.vid != node2.vid:
+                    q_v1, q_v2 = node1.vid, node2.vid
+                    q_start, q_end = None, None
+                    if node1.start == node2.start:
+                        q_start = node1.start
+                        q_end = node1.start
+                    elif node1.start == node2.end:
+                        q_start = node1.start
+                        q_end = node1.end
+                    elif node1.end == node2.start:
+                        q_start = node1.end
+                        q_end = node2.start
+                    elif node1.end == node2.end:
+                        q_start = node1.end
+                        q_end = node2.end
+
+                    ret = self.search_TCG_edge(q_v1, q_start, q_v2, q_end)
+                    if ret == 0:
+                        RCG_edge = node1.link_to(node2)
+                        self.edges.append(RCG_edge)
+                    elif ret == 1:
+                        RCG_edge = node2.link_to(node1)
+                        self.edges.append(RCG_edge)
+                    
 
     def has_deadlock(self) -> bool:
         # TODO: check if there is a deadlock
+        # check if this graph has a cycle
+        # use DFS to check if there is a cycle
         return False
+
 
     def __repr__(self):
         return f"RCG({len(self.nodes)} nodes, {len(self.edges)} edges)"
