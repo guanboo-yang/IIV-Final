@@ -42,7 +42,7 @@ class TCG_Edge:
         self.end = end
 
     def __repr__(self):
-        return f"TCGE({self.start} → {self.end})"
+        return f"TCGE({self.type}, {self.start} → {self.end})"
 
 
 class TCG:
@@ -92,6 +92,10 @@ class TCG:
 
     def solve(self):
         # TODO: remove type 3 edge
+        pass
+
+    def schedule(self):
+        # TODO: schedule the vehicles
         pass
 
     def __repr__(self):
@@ -189,14 +193,12 @@ class RCG:
                     elif ret == 1:
                         RCG_edge = node2.link_to(node1)
                         self.edges.append(RCG_edge)
-                    
 
     def has_deadlock(self) -> bool:
         # TODO: check if there is a deadlock
         # check if this graph has a cycle
         # use DFS to check if there is a cycle
         return False
-
 
     def __repr__(self):
         return f"RCG({len(self.nodes)} nodes, {len(self.edges)} edges)"
@@ -207,6 +209,8 @@ def main(input: TextIO):
     tcg = TCG()
     tcg.build(input)
     print(tcg)
+    print(*tcg.nodes, sep="\n")
+    # print(*[e for e in tcg.edges if e.type == 2], sep="\n")
 
     # regenerate rcg until no deadlock
     while True:
@@ -218,6 +222,8 @@ def main(input: TextIO):
         print(f"{rcg} -> deadlock")
 
     print(rcg)
+    # print(*rcg.nodes, sep="\n")
+    print(len(rcg.nodes))
 
 
 if __name__ == "__main__":
