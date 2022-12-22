@@ -211,10 +211,37 @@ class RCG:
                         RCG_edge = node2.link_to(node1)
                         self.edges.append(RCG_edge)
 
+    def build_adj_list(self):
+        self.adj_list = [[] for i in range(len(self.nodes))]
+        for edge in self.edges:
+            self.adj_list[self.nodes.index(edge.start)].append(self.nodes.index(edge.end))  #use original nodes index as the adj list index
+    
+    def dfs(self, v, visited, stack):
+        visited[v] = True
+        stack[v] = True
+
+        for i in self.adj_list[v]:
+            if not visited[i]:
+                if self.dfs(i, visited, stack):
+                    return True
+            elif stack[i]:
+                return True
+
+        stack[v] = False
+        return False
+
     def has_deadlock(self) -> bool:
         # TODO: check if there is a deadlock
         # check if this graph has a cycle
         # use DFS to check if there is a cycle
+        self.build_adj_list()
+        visited = [False] * len(self.nodes)
+        stack = [False] * len(self.nodes)
+
+        for v in range(len(self.nodes)):
+            if not visited[v]:
+                if self.dfs(v, visited, stack):
+                    return True
         return False
 
     def __repr__(self):
