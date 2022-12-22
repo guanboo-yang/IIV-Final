@@ -41,8 +41,11 @@ class TCG_Edge:
         self.start = start
         self.end = end
 
-    def unlink(self):
-        self.start.outgoing.remove(self)
+    def reverse(self):
+        self.start, self.end = self.end, self.start
+        # update outgoing list
+        self.start.outgoing.append(self)
+        self.end.outgoing.remove(self)
 
     def __repr__(self):
         return f"TCGE({self.type}, {self.start} → {self.end})"
@@ -54,7 +57,6 @@ class TCG:
         self.vehicles: list[Vehicle] = []
         self.nodes: list[TCG_Node] = []
         self.edges: list[TCG_Edge] = []
-        self.type3_edge_pairs: list[tuple] = []
         self.prev_vehicle: list[TCG_Node] = [None, None, None, None]
         self.zone_vehicles: list[list[TCG_Node]] = [[], [], [], []]
 
@@ -93,17 +95,10 @@ class TCG:
             for n1, n2 in permutations(nodes, 2):
                 edge1 = n1.link_to(n2, 3)
                 self.edges.append(edge1)
-                
-                # this is wrong
-                self.type3_edge_pairs.append((edge1))
-
-    def remove_edge(self, edge: TCG_Edge):
-        edge.unlink()
-        self.edges.remove(edge)
 
     def solve(self):
         # remove type 3 edge: FCFS
-        #for edge1, edge2 in self.type3_edge_pairs:
+        # for edge1, edge2 in self.type3_edge_pairs:
         #    if edge1.start.arive_time > edge2.start.arive_time:
         #        self.remove_edge(edge1)
         #    elif edge1.start.arive_time < edge2.start.arive_time:
@@ -113,7 +108,6 @@ class TCG:
                 if TCG_edge.start.vid > TCG_edge.end.vid or TCG_edge.start.vid == TCG_edge.end.vid:
                     self.edges.remove(TCG_edge)
         pass
-
 
     def schedule(self):
         # TODO: schedule the vehicles
@@ -233,7 +227,6 @@ def main(input: TextIO):
     tcg.build(input)
     print(tcg)
     print(*tcg.nodes, sep="\n")
-    # print(*[e for e in tcg.edges if e.type == 2], sep="\n")
 
     # regenerate rcg until no deadlock
     while True:
@@ -246,7 +239,8 @@ def main(input: TextIO):
 
     print(rcg)
     # print(*rcg.nodes, sep="\n")
-    print(len(rcg.nodes))
+    # print(len(rcg.nodes))
+    # print(len(rcg.edges))
 
 
 if __name__ == "__main__":
