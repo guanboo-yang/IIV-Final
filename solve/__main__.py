@@ -41,6 +41,9 @@ class TCG_Edge:
         self.start = start
         self.end = end
 
+    def unlink(self):
+        self.start.outgoing.remove(self)
+
     def __repr__(self):
         return f"TCGE({self.type}, {self.start} → {self.end})"
 
@@ -51,6 +54,7 @@ class TCG:
         self.vehicles: list[Vehicle] = []
         self.nodes: list[TCG_Node] = []
         self.edges: list[TCG_Edge] = []
+        self.type3_edge_pairs: list[tuple] = []
         self.prev_vehicle: list[TCG_Node] = [None, None, None, None]
         self.zone_vehicles: list[list[TCG_Node]] = [[], [], [], []]
 
@@ -87,15 +91,28 @@ class TCG:
         for z in range(4):
             nodes = self.zone_vehicles[z]
             for n1, n2 in permutations(nodes, 2):
-                edge = n1.link_to(n2, 3)
-                self.edges.append(edge)
+                edge1 = n1.link_to(n2, 3)
+                self.edges.append(edge1)
+                
+                # this is wrong
+                self.type3_edge_pairs.append((edge1))
+
+    def remove_edge(self, edge: TCG_Edge):
+        edge.unlink()
+        self.edges.remove(edge)
 
     def solve(self):
-        # TODO: remove type 3 edge
-        pass
+        # remove type 3 edge: FCFS
+        for edge1, edge2 in self.type3_edge_pairs:
+            if edge1.start.arive_time > edge2.start.arive_time:
+                self.remove_edge(edge1)
+            elif edge1.start.arive_time < edge2.start.arive_time:
+                self.remove_edge(edge2)
 
     def schedule(self):
         # TODO: schedule the vehicles
+        # run topological sort on this graph
+        # then output the schedule
         pass
 
     def __repr__(self):
