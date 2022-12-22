@@ -103,10 +103,11 @@ class TCG:
 
     def solve(self):
         # remove type 3 edge: FCFS
-        #for TCG_edge in self.edges:
-        #    if TCG_edge.type == 3:
-        #        if TCG_edge.start.vid > TCG_edge.end.vid or TCG_edge.start.vid == TCG_edge.end.vid:
-        #            self.edges.remove(TCG_edge)
+        #for edge1, edge2 in self.type3_edge_pairs:
+        #    if edge1.start.arive_time > edge2.start.arive_time:
+        #        self.remove_edge(edge1)
+        #    elif edge1.start.arive_time < edge2.start.arive_time:
+        #        self.remove_edge(edge2)
         for TCG_edge in self.edges:
             if TCG_edge.type == 3:
                 if TCG_edge.start.vid > TCG_edge.end.vid or TCG_edge.start.vid == TCG_edge.end.vid:
