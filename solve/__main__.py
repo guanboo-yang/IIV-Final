@@ -6,7 +6,7 @@ from path import get_path
 
 
 class Vehicle:
-    def __init__(self, id, arrive_time, start, end, payment):
+    def __init__(self, id: int, arrive_time: int, start: int, end: int, payment: int):
         self.id = id
         self.arrive_time = arrive_time
         self.start = start
@@ -57,11 +57,10 @@ class TCG_Edge:
 class TCG:
     def __init__(self):
         super().__init__()
-        self.vehicles: list[Vehicle] = []
         self.nodes: list[TCG_Node] = []
         self.edges: list[TCG_Edge] = []
-        self.prev_vehicle: list[TCG_Node] = [None, None, None, None]
-        self.zones: list[list[TCG_Node]] = [[], [], [], []]
+        self.vehicles: list[Vehicle] = []
+        self.prev: list[Vehicle] = [None, None, None, None]  # prev vehicle for each zone
 
     def build(self, input: TextIO):
         # keep reading until eof
@@ -73,27 +72,24 @@ class TCG:
         self.build_type_3_edge()
 
     def add_vehicle(self, vehicle: Vehicle):
-
-        # add vehicle and nodes
         self.vehicles.append(vehicle)
+        # add nodes to graph
         for node in vehicle.path:
-            self.zones[node.zid].append(node)
             self.nodes.append(node)
-
         # handle type 1 edge
         for start, end in pairwise(vehicle.path):
             edge = start.link_to(end, 1)
             self.edges.append(edge)
-
         # handle type 2 edge
-        if self.prev_vehicle[vehicle.start] is not None:
-            edge = self.prev_vehicle[vehicle.start].link_to(vehicle.path[0], 2)
-            self.edges.append(edge)
-        self.prev_vehicle[vehicle.start] = vehicle.path[0]
+        if self.prev[vehicle.start] is not None:
+            for node1, node2 in zip(vehicle.path, self.prev[vehicle.start].path):
+                edge = node1.link_to(node2, 2)
+                self.edges.append(edge)
+        self.prev[vehicle.start] = vehicle
 
     def build_type_3_edge(self):
         for z in range(4):
-            nodes = self.zones[z]
+            nodes = [node for node in self.nodes if node.zid == z]
             for n1, n2 in permutations(nodes, 2):
                 edge1 = n1.link_to(n2, 3)
                 self.edges.append(edge1)
@@ -254,7 +250,9 @@ def main(input: TextIO):
     tcg = TCG()
     tcg.build(input)
     print(tcg)
-    # print(*tcg.nodes, sep="\n")
+    # print(*tcg.vehicles, sep="\n")
+    # print(*tcg.edges, sep="\n")
+    # print(*[e for e in tcg.edges if e.type == 2], sep="\n")
 
     # regenerate rcg until no deadlock
     while True:
