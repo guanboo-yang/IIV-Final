@@ -19,7 +19,7 @@ class Vehicle:
             self.path.append(node)
 
     def __repr__(self):
-        return f"Vehicle({self.id}, {' → '.join(map(str, self.path))})"
+        return f"{' → '.join(map(str, self.path))}"
 
 
 class TCG_Node:
@@ -61,10 +61,11 @@ class TCG:
         self.nodes: list[TCG_Node] = []
         self.edges: list[TCG_Edge] = []
         self.prev_vehicle: list[TCG_Node] = [None, None, None, None]
-        self.zone_vehicles: list[list[TCG_Node]] = [[], [], [], []]
+        self.zones: list[list[TCG_Node]] = [[], [], [], []]
 
     def build(self, input: TextIO):
         # keep reading until eof
+        # handle type 1 edge and type 2 edge
         for line in input:
             vehicle = Vehicle(*map(int, line.split()))
             self.add_vehicle(vehicle)
@@ -76,7 +77,7 @@ class TCG:
         # add vehicle and nodes
         self.vehicles.append(vehicle)
         for node in vehicle.path:
-            self.zone_vehicles[node.zid].append(node)
+            self.zones[node.zid].append(node)
             self.nodes.append(node)
 
         # handle type 1 edge
@@ -92,7 +93,7 @@ class TCG:
 
     def build_type_3_edge(self):
         for z in range(4):
-            nodes = self.zone_vehicles[z]
+            nodes = self.zones[z]
             for n1, n2 in permutations(nodes, 2):
                 edge1 = n1.link_to(n2, 3)
                 self.edges.append(edge1)
@@ -108,7 +109,6 @@ class TCG:
             if TCG_edge.type == 3:
                 if TCG_edge.start.vid > TCG_edge.end.vid or TCG_edge.start.vid == TCG_edge.end.vid:
                     self.edges.remove(TCG_edge)
-        pass
 
     def schedule(self):
         # TODO: schedule the vehicles
