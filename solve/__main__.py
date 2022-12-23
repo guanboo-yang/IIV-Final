@@ -96,16 +96,10 @@ class TCG:
 
     def solve(self):
         # remove type 3 edge: FCFS
-        pending_remove = []
-        for TCG_edge in self.edges:
-            if TCG_edge.type == 3:
-                if TCG_edge.start.vid > TCG_edge.end.vid or TCG_edge.start.vid == TCG_edge.end.vid:
-                    TCG_edge.start.outgoing.remove(TCG_edge)
-                    pending_remove.append(TCG_edge)
-
-        # prevent above loop from malfunction
-        for TCG_edge in pending_remove:
-            self.edges.remove(TCG_edge)
+        for e in self.edges:
+            if e.type == 3:
+                if e.start.vid > e.end.vid or e.start.vid == e.end.vid:
+                    e.reverse()
 
     def topological_sort(self):
         zones = [[], [], [], []]
