@@ -1,4 +1,4 @@
-from itertools import permutations
+from itertools import pairwise, permutations
 import sys
 from typing import TextIO
 
@@ -12,8 +12,11 @@ class Vehicle:
         self.start = start
         self.end = end
         self.payment = payment
+        self.path: list[TCG_Node] = []
 
-        self.path = get_path(start, end)
+        for zone in get_path(start, end):
+            node = TCG_Node(id, zone)
+            self.path.append(node)
 
     def __repr__(self):
         return f"Vehicle({self.id}, {' → '.join(map(str, self.path))})"
@@ -63,31 +66,29 @@ class TCG:
     def build(self, input: TextIO):
         # keep reading until eof
         for line in input:
-            self.add_vehicle(Vehicle(*map(int, line.split())))
+            vehicle = Vehicle(*map(int, line.split()))
+            self.add_vehicle(vehicle)
         # handle type 3 edge
         self.build_type_3_edge()
 
     def add_vehicle(self, vehicle: Vehicle):
+
+        # add vehicle and nodes
         self.vehicles.append(vehicle)
-        start = TCG_Node(vehicle.id, vehicle.start)
+        for node in vehicle.path:
+            self.zone_vehicles[node.zid].append(node)
+            self.nodes.append(node)
 
         # handle type 1 edge
-        curr = start
-        self.nodes.append(curr)  # add start node
-        self.zone_vehicles[vehicle.start].append(curr)
-        for z in vehicle.path[1:]:
-            end = TCG_Node(vehicle.id, z)
-            self.nodes.append(end)
-            edge = curr.link_to(end, 1)
+        for start, end in pairwise(vehicle.path):
+            edge = start.link_to(end, 1)
             self.edges.append(edge)
-            curr = end
-            self.zone_vehicles[z].append(curr)
 
         # handle type 2 edge
         if self.prev_vehicle[vehicle.start] is not None:
-            edge = self.prev_vehicle[vehicle.start].link_to(start, 2)
+            edge = self.prev_vehicle[vehicle.start].link_to(vehicle.path[0], 2)
             self.edges.append(edge)
-        self.prev_vehicle[vehicle.start] = start
+        self.prev_vehicle[vehicle.start] = vehicle.path[0]
 
     def build_type_3_edge(self):
         for z in range(4):
@@ -214,8 +215,8 @@ class RCG:
     def build_adj_list(self):
         self.adj_list = [[] for i in range(len(self.nodes))]
         for edge in self.edges:
-            self.adj_list[self.nodes.index(edge.start)].append(self.nodes.index(edge.end))  #use original nodes index as the adj list index
-    
+            self.adj_list[self.nodes.index(edge.start)].append(self.nodes.index(edge.end))  # use original nodes index as the adj list index
+
     def dfs(self, v, visited, stack):
         visited[v] = True
         stack[v] = True
@@ -253,7 +254,7 @@ def main(input: TextIO):
     tcg = TCG()
     tcg.build(input)
     print(tcg)
-    print(*tcg.nodes, sep="\n")
+    # print(*tcg.nodes, sep="\n")
 
     # regenerate rcg until no deadlock
     while True:
