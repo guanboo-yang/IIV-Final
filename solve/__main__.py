@@ -83,7 +83,7 @@ class TCG:
         # handle type 2 edge
         if self.prev[vehicle.start] is not None:
             for node1, node2 in zip(vehicle.path, self.prev[vehicle.start].path):
-                edge = node1.link_to(node2, 2)
+                edge = node2.link_to(node1, 2)
                 self.edges.append(edge)
         self.prev[vehicle.start] = vehicle
 
@@ -96,21 +96,58 @@ class TCG:
 
     def solve(self):
         # remove type 3 edge: FCFS
-        # for edge1, edge2 in self.type3_edge_pairs:
-        #    if edge1.start.arive_time > edge2.start.arive_time:
-        #        self.remove_edge(edge1)
-        #    elif edge1.start.arive_time < edge2.start.arive_time:
-        #        self.remove_edge(edge2)
+        pending_remove = []
         for TCG_edge in self.edges:
             if TCG_edge.type == 3:
                 if TCG_edge.start.vid > TCG_edge.end.vid or TCG_edge.start.vid == TCG_edge.end.vid:
-                    self.edges.remove(TCG_edge)
+                    TCG_edge.start.outgoing.remove(TCG_edge)
+                    pending_remove.append(TCG_edge)
+
+        # prevent above loop from malfunction
+        for TCG_edge in pending_remove:
+            self.edges.remove(TCG_edge)
+
+    def topological_sort(self):
+        zones = [[], [], [], []]
+
+        for n in self.nodes:
+            n.in_degree = 0
+
+        # calculate in degree for all nodes
+        for e in self.edges:
+            e.end.in_degree += 1
+
+        # print graph
+        # print("nodes")
+        # for n in self.nodes:
+        #     print(n, n.in_degree)
+        # print("\nedges")
+        # for e in self.edges:
+        #     print(e)
+
+        zero_degree_nodes = [n for n in self.nodes if n.in_degree == 0]
+        remaining_nodes = len(self.nodes)
+
+        while remaining_nodes:
+            m = len(zero_degree_nodes)
+            for _ in range(m):
+                n = zero_degree_nodes.pop()
+                zones[n.zid].append(n)
+                remaining_nodes -= 1
+                for e in n.outgoing:
+                    e.end.in_degree -= 1
+                    if e.end.in_degree == 0:
+                        zero_degree_nodes.append(e.end)
+
+        return zones
 
     def schedule(self):
-        # TODO: schedule the vehicles
-        # run topological sort on this graph
-        # then output the schedule
-        pass
+        result = self.topological_sort()
+        ret = [[], [], [], []]
+        for z in range(4):
+            for n in result[z]:
+                ret[z].append(n.vid)
+        return ret
 
     def __repr__(self):
         return f"TCG({len(self.vehicles)} vehicles, {len(self.nodes)} nodes, {len(self.edges)} edges)"
@@ -178,35 +215,30 @@ class RCG:
                 RCG_node_ind = RCG_node_ind + 1
                 self.edges.append(RCG_edge)
 
+        def add_edge(q_v1, q_start, q_v2, q_end):
+            ret = self.search_TCG_edge(q_v1, q_start, q_v2, q_end)
+            if ret == 0:
+                RCG_edge = node1.link_to(node2)
+                self.edges.append(RCG_edge)
+            elif ret == 1:
+                RCG_edge = node2.link_to(node1)
+                self.edges.append(RCG_edge)
+
         # create the resource conflict graph edge according to the slide_6 p42 rule(b)~(e)
-        # TODO: case of both start and end are the same for both vertices is not implemented yet
         for RCG_node_i in range(len(self.nodes)):
             for RCG_node_j in range(RCG_node_i, len(self.nodes)):
                 node1 = self.nodes[RCG_node_i]
                 node2 = self.nodes[RCG_node_j]
                 if node1.vid != node2.vid:
                     q_v1, q_v2 = node1.vid, node2.vid
-                    q_start, q_end = None, None
                     if node1.start == node2.start:
-                        q_start = node1.start
-                        q_end = node1.start
-                    elif node1.start == node2.end:
-                        q_start = node1.start
-                        q_end = node1.end
-                    elif node1.end == node2.start:
-                        q_start = node1.end
-                        q_end = node2.start
-                    elif node1.end == node2.end:
-                        q_start = node1.end
-                        q_end = node2.end
-
-                    ret = self.search_TCG_edge(q_v1, q_start, q_v2, q_end)
-                    if ret == 0:
-                        RCG_edge = node1.link_to(node2)
-                        self.edges.append(RCG_edge)
-                    elif ret == 1:
-                        RCG_edge = node2.link_to(node1)
-                        self.edges.append(RCG_edge)
+                        add_edge(q_v1, node1.start, q_v2, node2.start)
+                    if node1.start == node2.end:
+                        add_edge(q_v1, node1.start, q_v2, node2.end)
+                    if node1.end == node2.start:
+                        add_edge(q_v1, node1.end, q_v2, node2.start)
+                    if node1.end == node2.end:
+                        add_edge(q_v1, node1.end, q_v2, node2.end)
 
     def build_adj_list(self):
         self.adj_list = [[] for i in range(len(self.nodes))]
@@ -267,6 +299,10 @@ def main(input: TextIO):
     # print(*rcg.nodes, sep="\n")
     # print(len(rcg.nodes))
     # print(len(rcg.edges))
+    ret = tcg.schedule()
+    # TODO: need to output this to some file
+    for z in range(4):
+        print(ret[z])
 
 
 if __name__ == "__main__":
