@@ -1,3 +1,4 @@
+from enum import Enum, IntEnum
 from io import StringIO
 from itertools import combinations, pairwise, permutations
 from queue import Queue
@@ -137,13 +138,19 @@ class TCG:
         return f"TCG({len(self.vehicles)} vehicles, {len(self.nodes)} nodes, {len(self.edges)} edges)"
 
 
+class Color(Enum):
+    WHITE = 0  # unvisited
+    GRAY = 1  # visited
+    BLACK = 2  # finished
+
+
 class RCG_Node:
     def __init__(self, vid: int, start: int, end: int):
         self.vid = vid
         self.start = start
         self.end = end
         self.outgoing: list["RCG_Edge"] = []
-        self.visited = False
+        self.color = Color.WHITE
 
     def link_to(self, other: "RCG_Node"):
         edge = RCG_Edge(self, other)
@@ -206,21 +213,24 @@ class RCG:
             # create the RCG edges (type e)
             add_edge(node1.vid, node1.end, node2.vid, node2.start)
 
-    def dfs(self, node: RCG_Node):
-        node.visited = True
+    # return True if there is a cycle
+    def dfs(self, node: RCG_Node) -> bool:
+        node.color = Color.GRAY
         for edge in node.outgoing:
-            if not edge.end.visited:
-                self.dfs(edge.end)
+            if edge.end.color == Color.GRAY:
+                return True
+            if edge.end.color == Color.WHITE:
+                if self.dfs(edge.end):
+                    return True
+        node.color = Color.BLACK
+        return False
 
     def has_deadlock(self) -> bool:
         # use DFS to check if there is a cycle
         for node in self.nodes:
-            node.visited = False
-        for node in self.nodes:
-            self.dfs(node)
-        for node in self.nodes:
-            if not node.visited:
-                return True
+            if node.color == Color.WHITE:
+                if self.dfs(node):
+                    return True
         return False
 
     def __repr__(self):
