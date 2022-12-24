@@ -1,11 +1,17 @@
-from enum import Enum, IntEnum
-from io import StringIO
-from itertools import combinations, pairwise, permutations
+from argparse import ArgumentParser
+from enum import Enum
+from itertools import combinations, pairwise
 from queue import Queue
+from random import random
 import sys
 from typing import TextIO
 
 from path import get_path
+
+# define constants
+TIME_ENTER_ZONE = 1.4
+TIME_CHANGE_ZONE = 0.85
+TIME_WAIT = 0.2
 
 
 class Vehicle:
@@ -18,7 +24,7 @@ class Vehicle:
         self.path: list[TCG_Node] = []
 
         for zone in get_path(start, end):
-            node = TCG_Node(id, zone)
+            node = TCG_Node(id, zone, arrive_time)
             self.path.append(node)
 
     def __repr__(self):
@@ -26,12 +32,13 @@ class Vehicle:
 
 
 class TCG_Node:
-    def __init__(self, vid: int, zid: int):
+    def __init__(self, vid: int, zid: int, time: int):
         super().__init__()
         self.vid = vid
         self.zid = zid
         self.outgoing: list[TCG_Edge] = []
         self.in_degree = 0
+        self.time = time + TIME_ENTER_ZONE
 
     def link_to(self, other: "TCG_Node", type: int):
         edge = TCG_Edge(type, self, other)
@@ -71,6 +78,7 @@ class TCG:
         self.edges: list[TCG_Edge] = []
         self.vehicles: list[Vehicle] = []
         self.prev: list[Vehicle] = [None, None, None, None]  # prev vehicle for each zone
+        self.zone_times: list[int] = [0, 0, 0, 0]
 
     def build(self, input: TextIO):
         # keep reading until eof
@@ -101,14 +109,18 @@ class TCG:
         for zid in range(4):
             nodes = [node for node in self.nodes if node.zid == zid]
             for node1, node2 in combinations(nodes, 2):
-                edge1 = node1.link_to(node2, 3)
-                self.edges.append(edge1)
+                # edge = node1.link_to(node2, 3)
+                edge = node2.link_to(node1, 3)
+                self.edges.append(edge)
 
-    def solve(self):
-        # remove type 3 edge: FCFS
-        for edge in self.edges:
-            if edge.type == 3:
-                if edge.start.vid > edge.end.vid:
+    def solve(self, method: str):
+        if method == "fcfs":
+            for edge in self.edges:
+                if edge.type == 3 and edge.start.vid > edge.end.vid:
+                    edge.reverse()
+        if method == "random":
+            for edge in self.edges:
+                if edge.type == 3 and edge.start.vid > edge.end.vid and random() < 0.5:
                     edge.reverse()
 
     def schedule(self):
@@ -130,8 +142,10 @@ class TCG:
             zones[node.zid].append(node)
             for edge in node.outgoing:
                 edge.end.in_degree -= 1
+                # add to queue if in degree is 0
                 if edge.end.in_degree == 0:
                     queue.put(edge.end)
+            self.zone_times[node.zid] = max(self.zone_times[node.zid], node.time)
         return zones
 
     def __repr__(self):
@@ -149,8 +163,8 @@ class RCG_Node:
         self.vid = vid
         self.start = start
         self.end = end
-        self.outgoing: list["RCG_Edge"] = []
         self.color = Color.WHITE
+        self.outgoing: list["RCG_Edge"] = []
 
     def link_to(self, other: "RCG_Node"):
         edge = RCG_Edge(self, other)
@@ -228,16 +242,15 @@ class RCG:
     def has_deadlock(self) -> bool:
         # use DFS to check if there is a cycle
         for node in self.nodes:
-            if node.color == Color.WHITE:
-                if self.dfs(node):
-                    return True
+            if self.dfs(node):
+                return True
         return False
 
     def __repr__(self):
         return f"RCG({len(self.nodes)} nodes, {len(self.edges)} edges)"
 
 
-def main(input: TextIO, output: TextIO):
+def main(input: TextIO, output: TextIO, strategy: str):
 
     tcg = TCG()
     tcg.build(input)
@@ -248,7 +261,7 @@ def main(input: TextIO, output: TextIO):
 
     # regenerate rcg until no deadlock
     while True:
-        tcg.solve()
+        tcg.solve(strategy)
         rcg = RCG()
         rcg.build(tcg)
         if not rcg.has_deadlock():
@@ -256,32 +269,31 @@ def main(input: TextIO, output: TextIO):
         print(f"{rcg} -> deadlock")
 
     print(rcg)
-    # print(*rcg.nodes, sep="\n")
-    # print(len(rcg.nodes))
-    # print(len(rcg.edges))
+    # print(*rcg.edges, sep="\n")
 
     schedule = tcg.schedule()
 
     for zid in range(4):
+        # print(zid, *[f"({node.vid}, {node.time:.2f})" for node in schedule[zid]], sep=" ")
         output.write(" ".join([str(node.vid) for node in schedule[zid]]) + "\n")
 
 
-if __name__ == "__main__":
-    args = sys.argv[1:]
-    if len(args) > 2:
-        print("Usage: python3 solve file")
-        exit(1)
-    elif len(args) == 2:
-        input = open(args[0])
-        output = open(args[1], "w")
-    elif len(args) == 1:
-        input = open(args[0])
-        output = sys.stdout
-    else:
-        input = sys.stdin
-        output = sys.stdout
+# parse arguments
+def parse_args():
+    parser = ArgumentParser()
+    parser.add_argument("-s", "--strategy", type=str, default="fcfs", help="scheduling strategy")
+    parser.add_argument("-i", "--input", type=str, default=None, help="input file")
+    parser.add_argument("-o", "--output", type=str, default=None, help="output file")
+    args = parser.parse_args()
+    return args
 
-    main(input, output)
+
+if __name__ == "__main__":
+    args = parse_args()
+    input = open(args.input) if args.input else sys.stdin
+    output = open(args.output, "w") if args.output else sys.stdout
+
+    main(input, output, args.strategy)
 
     if input != sys.stdin:
         input.close()
