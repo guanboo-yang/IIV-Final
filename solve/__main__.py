@@ -28,6 +28,7 @@ class TCG_Node:
         self.vid = vid
         self.zid = zid
         self.outgoing: list[TCG_Edge] = []
+        self.in_degree = 0
 
     def link_to(self, other: "TCG_Node", type: int):
         edge = TCG_Edge(type, self, other)
@@ -88,60 +89,42 @@ class TCG:
         self.prev[vehicle.start] = vehicle
 
     def build_type_3_edge(self):
-        for z in range(4):
-            nodes = [node for node in self.nodes if node.zid == z]
-            for n1, n2 in permutations(nodes, 2):
-                edge1 = n1.link_to(n2, 3)
+        for zid in range(4):
+            nodes = [node for node in self.nodes if node.zid == zid]
+            for node1, node2 in permutations(nodes, 2):
+                edge1 = node1.link_to(node2, 3)
                 self.edges.append(edge1)
 
     def solve(self):
         # remove type 3 edge: FCFS
-        for e in self.edges:
-            if e.type == 3:
-                if e.start.vid > e.end.vid or e.start.vid == e.end.vid:
-                    e.reverse()
-
-    def topological_sort(self):
-        zones = [[], [], [], []]
-
-        for n in self.nodes:
-            n.in_degree = 0
-
-        # calculate in degree for all nodes
-        for e in self.edges:
-            e.end.in_degree += 1
-
-        # print graph
-        # print("nodes")
-        # for n in self.nodes:
-        #     print(n, n.in_degree)
-        # print("\nedges")
-        # for e in self.edges:
-        #     print(e)
-
-        zero_degree_nodes = [n for n in self.nodes if n.in_degree == 0]
-        remaining_nodes = len(self.nodes)
-
-        while remaining_nodes:
-            m = len(zero_degree_nodes)
-            for _ in range(m):
-                n = zero_degree_nodes.pop()
-                zones[n.zid].append(n)
-                remaining_nodes -= 1
-                for e in n.outgoing:
-                    e.end.in_degree -= 1
-                    if e.end.in_degree == 0:
-                        zero_degree_nodes.append(e.end)
-
-        return zones
+        for edge in self.edges:
+            if edge.type == 3:
+                if edge.start.vid > edge.end.vid:
+                    edge.reverse()
 
     def schedule(self):
-        result = self.topological_sort()
-        ret = [[], [], [], []]
-        for z in range(4):
-            for n in result[z]:
-                ret[z].append(n.vid)
-        return ret
+        # topological sort
+        zones: list[list[TCG_Node]] = [[], [], [], []]
+        # reset in degree
+        for node in self.nodes:
+            node.in_degree = 0
+        # calculate in degree for each node
+        for edge in self.edges:
+            edge.end.in_degree += 1
+        # find source nodes
+        source_nodes = [node for node in self.nodes if node.in_degree == 0]
+        remain_num = len(self.nodes)
+        while remain_num:
+            m = len(source_nodes)
+            for _ in range(m):
+                node = source_nodes.pop()
+                zones[node.zid].append(node)
+                remain_num -= 1
+                for edge in node.outgoing:
+                    edge.end.in_degree -= 1
+                    if edge.end.in_degree == 0:
+                        source_nodes.append(edge.end)
+        return zones
 
     def __repr__(self):
         return f"TCG({len(self.vehicles)} vehicles, {len(self.nodes)} nodes, {len(self.edges)} edges)"
@@ -179,8 +162,8 @@ class RCG:
 
     def build_edge_dict(self, TCG: TCG):
         self.TCG_edge_dict = dict()
-        for e in TCG.edges:
-            self.TCG_edge_dict[(e.start.vid, e.start.zid, e.end.vid, e.end.zid)] = e.type
+        for edge in TCG.edges:
+            self.TCG_edge_dict[(edge.start.vid, edge.start.zid, edge.end.vid, edge.end.zid)] = edge.type
 
     def search_TCG_edge(self, vid1, zid1, vid2, zid2):
         if vid1 == None or vid2 == None:
@@ -278,7 +261,7 @@ def main(input: TextIO):
     print(tcg)
     # print(*tcg.vehicles, sep="\n")
     # print(*tcg.edges, sep="\n")
-    # print(*[e for e in tcg.edges if e.type == 2], sep="\n")
+    # print(*[edge for edge in tcg.edges if edge.type == 2], sep="\n")
 
     # regenerate rcg until no deadlock
     while True:
@@ -294,11 +277,11 @@ def main(input: TextIO):
     # print(len(rcg.nodes))
     # print(len(rcg.edges))
 
-    ret = tcg.schedule()
+    schedule = tcg.schedule()
 
     with open("output.txt", "w") as f:
-        for z in range(4):
-            f.write(" ".join([str(x) for x in ret[z]]) + "\n")
+        for zid in range(4):
+            f.write(" ".join([str(node.vid) for node in schedule[zid]]) + "\n")
 
 
 if __name__ == "__main__":
