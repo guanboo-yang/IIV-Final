@@ -142,7 +142,8 @@ class RCG_Node:
         self.vid = vid
         self.start = start
         self.end = end
-        self.outgoing: list["TCG_Edge"] = []
+        self.outgoing: list["RCG_Edge"] = []
+        self.visited = False
 
     def link_to(self, other: "RCG_Node"):
         edge = RCG_Edge(self, other)
@@ -205,47 +206,25 @@ class RCG:
             # create the RCG edges (type e)
             add_edge(node1.vid, node1.end, node2.vid, node2.start)
 
-    def build_adj_list(self):
-        self.adj_list = [[] for i in range(len(self.nodes))]
-        for edge in self.edges:
-            self.adj_list[self.nodes.index(edge.start)].append(self.nodes.index(edge.end))  # use original nodes index as the adj list index
-
-    def dfs(self, v, visited, stack):
-        visited[v] = True
-        stack[v] = True
-
-        for i in self.adj_list[v]:
-            if not visited[i]:
-                if self.dfs(i, visited, stack):
-                    return True
-            elif stack[i]:
-                return True
-
-        stack[v] = False
-        return False
+    def dfs(self, node: RCG_Node):
+        node.visited = True
+        for edge in node.outgoing:
+            if not edge.end.visited:
+                self.dfs(edge.end)
 
     def has_deadlock(self) -> bool:
-        # TODO: check if there is a deadlock
-        # check if this graph has a cycle
         # use DFS to check if there is a cycle
-        self.build_adj_list()
-        visited = [False] * len(self.nodes)
-        stack = [False] * len(self.nodes)
-
-        for v in range(len(self.nodes)):
-            if not visited[v]:
-                if self.dfs(v, visited, stack):
-                    return True
+        for node in self.nodes:
+            node.visited = False
+        for node in self.nodes:
+            self.dfs(node)
+        for node in self.nodes:
+            if not node.visited:
+                return True
         return False
 
     def __repr__(self):
         return f"RCG({len(self.nodes)} nodes, {len(self.edges)} edges)"
-
-
-def test():
-    tcg = TCG()
-    tcg.build(StringIO("0 2 0 2 0\n1 2 3 0 0"))
-    print(tcg)
 
 
 def main(input: TextIO, output: TextIO):
