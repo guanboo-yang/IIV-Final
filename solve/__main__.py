@@ -1,4 +1,5 @@
 from itertools import pairwise, permutations
+from queue import Queue
 import sys
 from typing import TextIO
 
@@ -112,18 +113,17 @@ class TCG:
         for edge in self.edges:
             edge.end.in_degree += 1
         # find source nodes
-        source_nodes = [node for node in self.nodes if node.in_degree == 0]
-        remain_num = len(self.nodes)
-        while remain_num:
-            m = len(source_nodes)
-            for _ in range(m):
-                node = source_nodes.pop()
-                zones[node.zid].append(node)
-                remain_num -= 1
-                for edge in node.outgoing:
-                    edge.end.in_degree -= 1
-                    if edge.end.in_degree == 0:
-                        source_nodes.append(edge.end)
+        queue: Queue[TCG_Node] = Queue()
+        for node in self.nodes:
+            if node.in_degree == 0:
+                queue.put(node)
+        while not queue.empty():
+            node = queue.get()
+            zones[node.zid].append(node)
+            for edge in node.outgoing:
+                edge.end.in_degree -= 1
+                if edge.end.in_degree == 0:
+                    queue.put(edge.end)
         return zones
 
     def __repr__(self):
