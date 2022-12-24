@@ -293,10 +293,12 @@ def main(input: TextIO):
     # print(*rcg.nodes, sep="\n")
     # print(len(rcg.nodes))
     # print(len(rcg.edges))
+
     ret = tcg.schedule()
-    # TODO: need to output this to some file
-    for z in range(4):
-        print(ret[z])
+
+    with open("output.txt", "w") as f:
+        for z in range(4):
+            f.write(" ".join([str(x) for x in ret[z]]) + "\n")
 
 
 if __name__ == "__main__":
