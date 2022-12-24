@@ -1,4 +1,5 @@
-from itertools import pairwise, permutations
+from io import StringIO
+from itertools import combinations, pairwise, permutations
 from queue import Queue
 import sys
 from typing import TextIO
@@ -55,6 +56,12 @@ class TCG_Edge:
     def __repr__(self):
         return f"TCGE({self.type}, {self.start} → {self.end})"
 
+    def __eq__(self, other: tuple[int, int, int, int]):
+        return (self.start.vid, self.start.zid, self.end.vid, self.end.zid) == other
+
+    def __hash__(self):
+        return hash((self.start.vid, self.start.zid, self.end.vid, self.end.zid))
+
 
 class TCG:
     def __init__(self):
@@ -92,7 +99,7 @@ class TCG:
     def build_type_3_edge(self):
         for zid in range(4):
             nodes = [node for node in self.nodes if node.zid == zid]
-            for node1, node2 in permutations(nodes, 2):
+            for node1, node2 in combinations(nodes, 2):
                 edge1 = node1.link_to(node2, 3)
                 self.edges.append(edge1)
 
@@ -138,9 +145,9 @@ class RCG_Node:
         self.outgoing: list["TCG_Edge"] = []
 
     def link_to(self, other: "RCG_Node"):
-        RCG_edge = RCG_Edge(self, other)
-        self.outgoing.append(RCG_edge)
-        return RCG_edge
+        edge = RCG_Edge(self, other)
+        self.outgoing.append(edge)
+        return edge
 
     def __repr__(self):
         return f"({self.vid}, {self.start}, {self.end})"
@@ -159,63 +166,44 @@ class RCG:
     def __init__(self):
         self.nodes: list[RCG_Node] = []
         self.edges: list[RCG_Edge] = []
+        # start_vid, start_zid, end_vid, end_zid
+        self.TCG_edges: dict[tuple[int, int, int, int], int] = {}
 
-    def build_edge_dict(self, TCG: TCG):
-        self.TCG_edge_dict = dict()
-        for edge in TCG.edges:
-            self.TCG_edge_dict[(edge.start.vid, edge.start.zid, edge.end.vid, edge.end.zid)] = edge.type
+    def build(self, tcg: TCG):
+        # create TCG edges dict for fast search
+        self.TCG_edges = {}
+        for edge in tcg.edges:
+            self.TCG_edges[edge] = edge.type
 
-    def search_TCG_edge(self, vid1, zid1, vid2, zid2):
-        if vid1 == None or vid2 == None:
-            return None
-        if self.TCG_edge_dict.get((vid1, zid1, vid2, zid2)) != None:
-            return 0
-        elif self.TCG_edge_dict.get((vid2, zid2, vid1, zid1)) != None:
-            return 1
-        else:
-            return None
+        # create RCG nodes from TCG type 1 edges
+        for edge in tcg.edges:
+            if edge.type == 1:
+                node = RCG_Node(edge.start.vid, edge.start.zid, edge.end.zid)
+                self.nodes.append(node)
 
-    def build(self, TCG: TCG):
-        self.build_edge_dict(TCG)
+        def add_edge(vid1, zid1, vid2, zid2):
+            if self.TCG_edges.get((vid1, zid1, vid2, zid2)) != None:
+                edge = node1.link_to(node2)
+                self.edges.append(edge)
+            elif self.TCG_edges.get((vid2, zid2, vid1, zid1)) != None:
+                edge = node2.link_to(node1)
+                self.edges.append(edge)
 
-        for graph_edge in TCG.edges:
-            # create the conflict graph node
-            if graph_edge.type == 1:
-                RCG_start = RCG_Node(graph_edge.start.vid, graph_edge.start.zid, graph_edge.end.zid)
-                self.nodes.append(RCG_start)
-
-        # create the resource conflict graph edge according to the slide_6 p42 rule(a)
-        for RCG_node_ind in range(len(self.nodes)):
-            cur_id = self.nodes[RCG_node_ind].vid
-            while (RCG_node_ind + 1 < len(self.nodes)) and self.nodes[RCG_node_ind + 1].vid == cur_id:
-                RCG_edge = self.nodes[RCG_node_ind].link_to(self.nodes[RCG_node_ind + 1])
-                RCG_node_ind = RCG_node_ind + 1
-                self.edges.append(RCG_edge)
-
-        def add_edge(q_v1, q_start, q_v2, q_end):
-            ret = self.search_TCG_edge(q_v1, q_start, q_v2, q_end)
-            if ret == 0:
-                RCG_edge = node1.link_to(node2)
-                self.edges.append(RCG_edge)
-            elif ret == 1:
-                RCG_edge = node2.link_to(node1)
-                self.edges.append(RCG_edge)
-
-        # create the resource conflict graph edge according to the slide_6 p42 rule(b)~(e)
-        for RCG_node_i in range(len(self.nodes)):
-            for RCG_node_j in range(RCG_node_i, len(self.nodes)):
-                node1 = self.nodes[RCG_node_i]
-                node2 = self.nodes[RCG_node_j]
-                if node1.vid != node2.vid:
-                    q_v1, q_v2 = node1.vid, node2.vid
-                    if node1.start == node2.start:
-                        add_edge(q_v1, node1.start, q_v2, node2.start)
-                    if node1.start == node2.end:
-                        add_edge(q_v1, node1.start, q_v2, node2.end)
-                    if node1.end == node2.start:
-                        add_edge(q_v1, node1.end, q_v2, node2.start)
-                    if node1.end == node2.end:
-                        add_edge(q_v1, node1.end, q_v2, node2.end)
+        # create RCG edges from TCG type 2 and 3 edges
+        for node1, node2 in combinations(self.nodes, 2):
+            # create the RCG edges (type a)
+            if node1.vid == node2.vid:
+                edge = node1.link_to(node2)
+                self.edges.append(edge)
+                continue
+            # create the RCG edges (type b)
+            add_edge(node1.vid, node1.start, node2.vid, node2.start)
+            # create the RCG edges (type c)
+            add_edge(node1.vid, node1.end, node2.vid, node2.end)
+            # create the RCG edges (type d)
+            add_edge(node1.vid, node1.start, node2.vid, node2.end)
+            # create the RCG edges (type e)
+            add_edge(node1.vid, node1.end, node2.vid, node2.start)
 
     def build_adj_list(self):
         self.adj_list = [[] for i in range(len(self.nodes))]
@@ -254,7 +242,13 @@ class RCG:
         return f"RCG({len(self.nodes)} nodes, {len(self.edges)} edges)"
 
 
-def main(input: TextIO):
+def test():
+    tcg = TCG()
+    tcg.build(StringIO("0 2 0 2 0\n1 2 3 0 0"))
+    print(tcg)
+
+
+def main(input: TextIO, output: TextIO):
 
     tcg = TCG()
     tcg.build(input)
@@ -279,22 +273,28 @@ def main(input: TextIO):
 
     schedule = tcg.schedule()
 
-    with open("output.txt", "w") as f:
-        for zid in range(4):
-            f.write(" ".join([str(node.vid) for node in schedule[zid]]) + "\n")
+    for zid in range(4):
+        output.write(" ".join([str(node.vid) for node in schedule[zid]]) + "\n")
 
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    if len(args) > 1:
+    if len(args) > 2:
         print("Usage: python3 solve file")
         exit(1)
-    if len(args) == 1:
+    elif len(args) == 2:
         input = open(args[0])
+        output = open(args[1], "w")
+    elif len(args) == 1:
+        input = open(args[0])
+        output = sys.stdout
     else:
         input = sys.stdin
+        output = sys.stdout
 
-    main(input)
+    main(input, output)
 
-    if len(args) == 1:
+    if input != sys.stdin:
         input.close()
+    if output != sys.stdout:
+        output.close()
