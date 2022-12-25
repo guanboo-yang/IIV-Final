@@ -40,7 +40,7 @@ class MyGame(Zones):
         with open(file1) as f:
             print("Loading testcase:", file1)
             for line in f:
-                id, arri, start, end, mon = map(int, line.split())
+                id, arri, start, end = map(int, line.split())
                 self.add_vehicle(arri, Vehicle(id, start, end))
                 for zone in get_path(start, end):
                     zones[zone].append(id)

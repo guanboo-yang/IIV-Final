@@ -15,12 +15,11 @@ TIME_WAIT = 0.2
 
 
 class Vehicle:
-    def __init__(self, id: int, arrive_time: int, start: int, end: int, payment: int):
+    def __init__(self, id: int, arrive_time: int, start: int, end: int):
         self.id = id
         self.arrive_time = arrive_time
         self.start = start
         self.end = end
-        self.payment = payment
         self.path: list[TCG_Node] = []
 
         for zone in get_path(start, end):
