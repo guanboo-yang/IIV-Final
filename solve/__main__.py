@@ -38,7 +38,8 @@ class TCG_Node:
         self.zid = zid
         self.outgoing: list[TCG_Edge] = []
         self.in_degree = 0
-        self.time = time + TIME_ENTER_ZONE
+        self.time_enter = time + TIME_ENTER_ZONE
+        self.time_leave = 0
 
     def link_to(self, other: "TCG_Node", type: int):
         edge = TCG_Edge(type, self, other)
@@ -56,6 +57,9 @@ class TCG_Edge:
         self.end = end
 
     def reverse(self):
+        # only reverse type 3 edge
+        if self.type != 3:
+            return
         self.start, self.end = self.end, self.start
         # update outgoing list
         self.start.outgoing.append(self)
@@ -78,7 +82,6 @@ class TCG:
         self.edges: list[TCG_Edge] = []
         self.vehicles: list[Vehicle] = []
         self.prev: list[Vehicle] = [None, None, None, None]  # prev vehicle for each zone
-        self.zone_times: list[int] = [0, 0, 0, 0]
 
     def build(self, input: TextIO):
         # keep reading until eof
@@ -109,7 +112,7 @@ class TCG:
         for zid in range(4):
             nodes = [node for node in self.nodes if node.zid == zid]
             for node1, node2 in combinations(nodes, 2):
-                if self.vehicles[node1.vid].path[0].zid != self.vehicles[node2.vid].path[0].zid:
+                if self.vehicles[node1.vid].start != self.vehicles[node2.vid].start:
                     edge = node2.link_to(node1, 3)
                     self.edges.append(edge)
 
@@ -123,7 +126,10 @@ class TCG:
                 if edge.type == 3 and edge.start.vid > edge.end.vid and random() < 0.5:
                     edge.reverse()
 
+    zone_empty_time: list[int] = [0, 0, 0, 0]
+
     def schedule(self):
+        TCG.zone_empty_time = [0, 0, 0, 0]
         # topological sort
         zones: list[list[TCG_Node]] = [[], [], [], []]
         # reset in degree
@@ -145,7 +151,6 @@ class TCG:
                 # add to queue if in degree is 0
                 if edge.end.in_degree == 0:
                     queue.put(edge.end)
-            self.zone_times[node.zid] = max(self.zone_times[node.zid], node.time)
         return zones
 
     def __repr__(self):
@@ -195,6 +200,11 @@ class RCG:
         # create TCG edges dict for fast search
         self.TCG_edges = {}
         for edge in tcg.edges:
+            # if self.TCG_edges.get((edge.start.vid, edge.start.zid, edge.end.vid, edge.end.zid)) != None:
+            #     print(
+            #         (edge.start.vid, edge.start.zid, edge.end.vid, edge.end.zid),
+            #         self.TCG_edges.get((edge.start.vid, edge.start.zid, edge.end.vid, edge.end.zid)),
+            #     )
             self.TCG_edges[edge] = edge.type
 
         # create RCG nodes from TCG type 1 edges
@@ -270,7 +280,7 @@ def main(input: TextIO, output: TextIO, strategy: str):
     schedule = tcg.schedule()
 
     for zid in range(4):
-        print(zid, *[f"({node.vid}, {node.time:.2f})" for node in schedule[zid]], sep=" ")
+        print(zid, *[f"({node.vid}, {node.time_enter:.2f})" for node in schedule[zid]], sep=" ")
         output.write(" ".join([str(node.vid) for node in schedule[zid]]) + "\n")
 
 
