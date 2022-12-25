@@ -215,8 +215,12 @@ class RCG:
         for node1, node2 in combinations(self.nodes, 2):
             # create the RCG edges (type a)
             if node1.vid == node2.vid:
-                edge = node1.link_to(node2)
-                self.edges.append(edge)
+                if node1.end == node2.start:
+                    edge = node1.link_to(node2)
+                    self.edges.append(edge)
+                if node1.start == node2.end:
+                    edge = node2.link_to(node1)
+                    self.edges.append(edge)
                 continue
             # create the RCG edges (type b)
             add_edge(node1.vid, node1.start, node2.vid, node2.start)
