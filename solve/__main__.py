@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 from enum import Enum
-from itertools import combinations, pairwise
+from itertools import combinations, pairwise, permutations
 from queue import Queue
 from random import random
 import sys
@@ -207,20 +207,12 @@ class RCG:
             if self.TCG_edges.get((vid1, zid1, vid2, zid2)) != None:
                 edge = node1.link_to(node2)
                 self.edges.append(edge)
-            elif self.TCG_edges.get((vid2, zid2, vid1, zid1)) != None:
-                edge = node2.link_to(node1)
-                self.edges.append(edge)
 
         # create RCG edges from TCG type 2 and 3 edges
-        for node1, node2 in combinations(self.nodes, 2):
+        for node1, node2 in permutations(self.nodes, 2):
             # create the RCG edges (type a)
             if node1.vid == node2.vid:
-                if node1.end == node2.start:
-                    edge = node1.link_to(node2)
-                    self.edges.append(edge)
-                if node1.start == node2.end:
-                    edge = node2.link_to(node1)
-                    self.edges.append(edge)
+                add_edge(node1.vid, node1.start, node2.vid, node2.start)
                 continue
             # create the RCG edges (type b)
             add_edge(node1.vid, node1.start, node2.vid, node2.start)
@@ -278,7 +270,7 @@ def main(input: TextIO, output: TextIO, strategy: str):
     schedule = tcg.schedule()
 
     for zid in range(4):
-        # print(zid, *[f"({node.vid}, {node.time:.2f})" for node in schedule[zid]], sep=" ")
+        print(zid, *[f"({node.vid}, {node.time:.2f})" for node in schedule[zid]], sep=" ")
         output.write(" ".join([str(node.vid) for node in schedule[zid]]) + "\n")
 
 
