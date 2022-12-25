@@ -49,7 +49,7 @@ def generate_one_testcase(args, path):
                 is_want_to_pay = random.random() < args.pay_prob
                 payment = random.randint(1, args.pay_max) if is_want_to_pay else 0
 
-                f.write(f"{vehicle_id} {time} {start} {end} {payment}")
+                f.write(f"{vehicle_id} {time} {start} {end}")  # no payment
                 f.write("\n")
                 vehicle_id += 1
 
