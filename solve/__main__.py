@@ -109,9 +109,9 @@ class TCG:
         for zid in range(4):
             nodes = [node for node in self.nodes if node.zid == zid]
             for node1, node2 in combinations(nodes, 2):
-                # edge = node1.link_to(node2, 3)
-                edge = node2.link_to(node1, 3)
-                self.edges.append(edge)
+                if self.vehicles[node1.vid].path[0].zid != self.vehicles[node2.vid].path[0].zid:
+                    edge = node2.link_to(node1, 3)
+                    self.edges.append(edge)
 
     def solve(self, method: str):
         if method == "fcfs":
@@ -253,7 +253,7 @@ def main(input: TextIO, output: TextIO, strategy: str):
     print(tcg)
     # print(*tcg.vehicles, sep="\n")
     # print(*tcg.edges, sep="\n")
-    # print(*[edge for edge in tcg.edges if edge.type == 2], sep="\n")
+    # print(*[edge for edge in tcg.edges], sep="\n")
 
     # regenerate rcg until no deadlock
     while True:
