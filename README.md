@@ -11,7 +11,7 @@ python3 generator.py [--n number of testcases = 5] [--seed random seed = 123] [-
 
 ```bash
 Usage:
-python3 solve [testcase path]
+python3 solve -i [testcase path] -o [output path] -s [schedule strategy]
 ```
 
 ## Simulate in PyGame
